@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CompanySettings {
+  id           String   @id @default(cuid())
+  name         String   @default("Shabab Express")
+  legalName    String   @default("SHABAB EXPRESS LLC")
+  addressLine  String   @default("400 Montrose Dr Apt F")
+  city         String   @default("Greensboro")
+  state        String   @default("NC")
+  zip          String   @default("27407-1272")
+  phone        String   @default("(336) 420-9974")
+  email        String   @default("sultanshah2k21@gmail.com")
+  mcNumber     String   @default("MC 1820180")
+  dotNumber    String   @default("DOT 4574766")
+  mcFeePercent Float    @default(10)
+  paymentTerms String   @default("Net 7 days from settlement date. Payment via direct deposit, Zelle, or company check.")
+  updatedAt    DateTime @updatedAt
+}
+
+model OwnerOperator {
+  id            String    @id @default(cuid())
+  name          String
+  phone         String?
+  email         String?
+  address       String?
+  city          String?
+  state         String?
+  zip           String?
+  truckNumber   String?
+  trailerNumber String?
+  cdlNumber     String?
+  cdlState      String?
+  cdlExpiry     DateTime?
+  mcFeePercent  Float     @default(10)
+  status        String    @default("ACTIVE")
+  notes         String?
+  createdAt     DateTime  @default(now())
+  invoices      Invoice[]
+  trucks        Truck[]
+}
+
+model Truck {
+  id                 String         @id @default(cuid())
+  unitNumber         String
+  type               String         @default("TRUCK") // TRUCK | TRAILER
+  make               String?
+  model              String?
+  year               Int?
+  vin                String?
+  plateNumber        String?
+  plateState         String?
+  insuranceProvider  String?
+  insuranceExpiry    DateTime?
+  registrationExpiry DateTime?
+  inspectionDue      DateTime?
+  status             String         @default("ACTIVE") // ACTIVE | MAINTENANCE | INACTIVE
+  notes              String?
+  operatorId         String?
+  operator           OwnerOperator? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  expenses           Expense[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  date        DateTime @default(now())
+  category    String   @default("OTHER") // FUEL | MAINTENANCE | INSURANCE | PLATES | TOLLS | REPAIRS | OTHER
+  description String
+  amount      Float
+  truckId     String?
+  truck       Truck?   @relation(fields: [truckId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+}
+
+model Invoice {
+  id            String         @id @default(cuid())
+  number        String         @unique
+  issueDate     DateTime       @default(now())
+  periodStart   DateTime?
+  periodEnd     DateTime?
+  operatorId    String
+  operator      OwnerOperator  @relation(fields: [operatorId], references: [id], onDelete: Restrict)
+  mcFeePercent  Float          @default(10)
+  status        String         @default("PENDING")
+  paidDate      DateTime?
+  paymentMethod String?
+  paymentRef    String?
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  loads         Load[]
+  deductions    Deduction[]
+}
+
+model Load {
+  id         String  @id @default(cuid())
+  invoiceId  String
+  invoice    Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  loadNumber String
+  date       DateTime
+  pickup     String
+  delivery   String
+  miles      Float   @default(0)
+  rateType   String  @default("FLAT")
+  rate       Float   @default(0)
+  gross      Float   @default(0)
+  sortOrder  Int     @default(0)
+}
+
+model Deduction {
+  id        String  @id @default(cuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  label     String
+  amount    Float
+  sortOrder Int     @default(0)
+}
