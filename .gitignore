@@ -61,3 +61,7 @@ upload/
 mini-services/
 agent-ctx/
 worklog.md
+
+# local test artifacts (contain credentials — never commit)
+scripts/test-pdf.py
+scripts/tmp/

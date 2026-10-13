@@ -67,10 +67,10 @@ export default function InvoicePaper({
         style={{ width: PAPER_W, transform: `scale(${scale})`, transformOrigin: "top left" }}
         className="bg-white text-neutral-900 shadow-[0_2px_24px_rgba(0,0,0,0.10)] border border-neutral-200/70 rounded-sm overflow-hidden"
       >
-        {/* gold accent bar */}
-        <div className="h-1.5 bg-amber-600" />
+        {/* slim gold accent bar */}
+        <div className="h-1 bg-amber-600" />
 
-        <div className="px-9 pt-6 pb-7">
+        <div className="px-10 pt-7 pb-8">
           {/* Header */}
           <div className="flex justify-between gap-6">
             <div className="flex gap-4">
@@ -78,20 +78,18 @@ export default function InvoicePaper({
               <img
                 src="/shabab-logo.png"
                 alt="Shabab Express LLC"
-                className="h-[68px] w-auto shrink-0 object-contain"
+                className="h-[60px] w-auto shrink-0 object-contain"
               />
               <div>
-                <div className="text-[24px] leading-6 font-bold tracking-tight">
+                <div className="text-[21px] leading-6 font-bold tracking-tight">
                   {(settings?.name || "Shabab Express").toUpperCase()}
                 </div>
-                <div className="text-[9.5px] text-neutral-500 mt-1 tracking-wide">
-                  {settings?.legalName || ""}
-                </div>
-                <div className="text-[9.5px] text-neutral-400 mt-1.5 leading-relaxed">
+                <div className="text-[9.5px] text-neutral-500 mt-1.5">
                   {settings?.addressLine || ""}
                   {settings?.addressLine ? ", " : ""}
                   {settings?.city || ""}, {settings?.state || ""} {settings?.zip || ""}
-                  <br />
+                </div>
+                <div className="text-[9.5px] text-neutral-400 mt-1">
                   {settings?.phone || ""} · {settings?.email || ""}
                 </div>
                 <div className="text-[10px] font-semibold text-amber-700 mt-1.5 tracking-wide">
@@ -122,19 +120,16 @@ export default function InvoicePaper({
             </div>
           </div>
 
-          {/* double rule */}
-          <div className="mt-5">
-            <div className="border-t-[1.5px] border-neutral-900" />
-            <div className="border-t-[2px] border-amber-600 mt-[2.5px]" />
-          </div>
+          {/* single thin rule */}
+          <div className="mt-5 border-t-[1.5px] border-neutral-900" />
 
-          {/* Info cards */}
-          <div className="mt-5 grid grid-cols-[1fr_300px] gap-3.5">
-            <div className="bg-neutral-100 rounded-lg px-5 py-4">
+          {/* Pay-to + details (plain columns) */}
+          <div className="mt-5 grid grid-cols-[1fr_300px] gap-8">
+            <div>
               <div className="text-[8.5px] font-bold tracking-[0.18em] text-neutral-400">
                 PAY TO THE ORDER OF
               </div>
-              <div className="text-[17px] font-bold mt-1.5">{op.name}</div>
+              <div className="text-[16px] font-bold mt-1.5">{op.name}</div>
               {opAddr && (
                 <div className="text-[10.5px] text-neutral-500 mt-1">{opAddr}</div>
               )}
@@ -143,11 +138,11 @@ export default function InvoicePaper({
                 {op.email && <span>E&nbsp;&nbsp;{op.email}</span>}
               </div>
             </div>
-            <div className="bg-neutral-100 rounded-lg px-5 py-4">
+            <div>
               <div className="text-[8.5px] font-bold tracking-[0.18em] text-neutral-400">
                 SETTLEMENT DETAILS
               </div>
-              <div className="mt-2 space-y-[5px]">
+              <div className="mt-2 space-y-[6px]">
                 {detailRows.map(([k, v]) => (
                   <div key={k} className="flex justify-between items-baseline text-[10.5px]">
                     <span className="text-neutral-500">{k}</span>
@@ -159,47 +154,47 @@ export default function InvoicePaper({
           </div>
 
           {/* Loads table */}
-          <div className="mt-7">
+          <div className="mt-8">
             <div className="flex items-baseline gap-3">
               <span className="text-[12px] font-bold tracking-wide">LOAD DETAILS</span>
               <span className="text-[10px] text-neutral-400">
                 {invoice.loads.length} load{invoice.loads.length === 1 ? "" : "s"}
               </span>
             </div>
-            <table className="w-full mt-2.5 text-[11.5px] border-collapse">
+            <table className="w-full mt-3 text-[11.5px] border-collapse">
               <thead>
-                <tr className="bg-neutral-100 text-left text-[8.5px] tracking-wider text-neutral-500">
-                  <th className="py-2 pl-3 font-bold">LOAD #</th>
+                <tr className="text-left text-[8.5px] tracking-wider text-neutral-400 border-b border-neutral-300">
+                  <th className="py-2 pl-1 font-bold">LOAD #</th>
                   <th className="py-2 font-bold">DATE</th>
                   <th className="py-2 font-bold">ROUTE (PICKUP → DELIVERY)</th>
                   <th className="py-2 font-bold text-right">MILES</th>
                   <th className="py-2 font-bold text-right">RATE</th>
-                  <th className="py-2 pr-3 font-bold text-right">AMOUNT</th>
+                  <th className="py-2 pr-1 font-bold text-right">AMOUNT</th>
                 </tr>
               </thead>
               <tbody>
                 {invoice.loads.map((l, i) => (
-                  <tr key={l.id || i} className={i % 2 === 1 ? "bg-neutral-50" : ""}>
-                    <td className="py-2 pl-3 font-semibold">{l.loadNumber}</td>
-                    <td className="py-2 text-neutral-500">{formatDate(l.date)}</td>
-                    <td className="py-2 max-w-[300px] truncate">
+                  <tr key={l.id || i}>
+                    <td className="py-[7px] pl-1 font-semibold">{l.loadNumber}</td>
+                    <td className="py-[7px] text-neutral-500">{formatDate(l.date)}</td>
+                    <td className="py-[7px] max-w-[300px] truncate">
                       {l.pickup || "—"} → {l.delivery || "—"}
                     </td>
-                    <td className="py-2 text-right tnum">
+                    <td className="py-[7px] text-right tnum">
                       {l.miles.toLocaleString("en-US")}
                     </td>
-                    <td className="py-2 text-right tnum text-neutral-500">
+                    <td className="py-[7px] text-right tnum text-neutral-500">
                       {l.rateType === "PER_MILE"
                         ? `$${l.rate.toFixed(2)}/mi`
                         : money(l.rate)}
                     </td>
-                    <td className="py-2 pr-3 text-right font-bold tnum">
+                    <td className="py-[7px] pr-1 text-right font-bold tnum">
                       {money(l.gross)}
                     </td>
                   </tr>
                 ))}
                 <tr className="border-t-[1.5px] border-neutral-900">
-                  <td colSpan={2} className="py-2.5 pl-3 text-[10px] font-bold tracking-wide text-neutral-500">
+                  <td colSpan={2} className="py-2.5 pl-1 text-[10px] font-bold tracking-wide text-neutral-500">
                     GROSS LINEHAUL TOTAL
                   </td>
                   <td className="py-2.5" />
@@ -207,7 +202,7 @@ export default function InvoicePaper({
                     {totalMiles.toLocaleString("en-US")} mi
                   </td>
                   <td className="py-2.5" />
-                  <td className="py-2.5 pr-3 text-right font-bold tnum text-[14px]">
+                  <td className="py-2.5 pr-1 text-right font-bold tnum text-[14px]">
                     {money(calc.grossTotal)}
                   </td>
                 </tr>
@@ -216,7 +211,7 @@ export default function InvoicePaper({
           </div>
 
           {/* Notes + Summary */}
-          <div className="mt-8 flex gap-9">
+          <div className="mt-9 flex gap-10">
             <div className="flex-1 min-w-0 text-[11px]">
               <div className="text-[8.5px] font-bold tracking-[0.18em] text-neutral-400">
                 PAYMENT TERMS
@@ -240,7 +235,7 @@ export default function InvoicePaper({
                 report any discrepancies within 7 days of receipt.
               </p>
             </div>
-            <div className="w-[330px] shrink-0 bg-neutral-100 rounded-lg px-5 py-4">
+            <div className="w-[330px] shrink-0">
               <div className="text-[8.5px] font-bold tracking-[0.18em] text-neutral-400">
                 SETTLEMENT SUMMARY
               </div>
@@ -268,9 +263,11 @@ export default function InvoicePaper({
               <div className="border-t border-neutral-300 mt-2.5 pt-2.5">
                 <SumRow label="Total deductions" value={`- ${money(calc.totalDeductions)}`} bold />
               </div>
-              <div className="mt-3 bg-neutral-900 text-white rounded-md px-4 py-3 flex items-center justify-between">
-                <span className="text-[10px] font-bold tracking-[0.14em]">NET PAYOUT</span>
-                <span className="text-[18px] font-bold text-amber-500 tnum">
+              <div className="mt-3 bg-amber-50 border border-amber-200 rounded-md px-4 py-3 flex items-center justify-between">
+                <span className="text-[10px] font-bold tracking-[0.14em] text-amber-800">
+                  NET PAYOUT
+                </span>
+                <span className="text-[18px] font-bold text-amber-700 tnum">
                   {money(calc.netPayout)}
                 </span>
               </div>
@@ -308,27 +305,9 @@ export default function InvoicePaper({
           </div>
         </div>
 
-        {/* Footer: identity + authority + address */}
-        <div className="border-t border-neutral-200 px-9 py-4 text-[9px] text-neutral-400">
-          <div className="font-semibold text-neutral-500">
-            Thank you for hauling with {settings?.legalName || settings?.name || "Shabab Express"} —
-            we appreciate your business.
-          </div>
-          <div className="mt-1 flex justify-between items-baseline gap-4">
-            <div>
-              <span className="font-bold text-amber-700">
-                {settings?.legalName || ""} · US DOT{" "}
-                {stripPrefix(settings?.dotNumber, /^DOT\s*/i)} · MC{" "}
-                {stripPrefix(settings?.mcNumber, /^MC\s*/i)}
-              </span>
-              <br />
-              <span>
-                {settings?.addressLine || ""}, {settings?.city || ""}, {settings?.state || ""}{" "}
-                {settings?.zip || ""} · {settings?.phone || ""} · {settings?.email || ""}
-              </span>
-            </div>
-            <span className="font-semibold shrink-0">Interstate Motor Carrier</span>
-          </div>
+        {/* Footer: just a thank-you, nothing else */}
+        <div className="border-t border-neutral-200 px-10 py-5 text-center">
+          <span className="text-[11px] italic text-neutral-400">Thank you</span>
         </div>
       </div>
     </div>
