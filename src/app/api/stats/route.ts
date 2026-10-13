@@ -98,7 +98,43 @@ export async function GET() {
   for (const o of operators) {
     pushAlert("CDL", o.name, "CDL expiry", o.cdlExpiry);
   }
+
+  /* ---------- documents expiring ---------- */
+  const documents = await db.document.findMany({
+    where: { expiryDate: { not: null } },
+    include: {
+      operator: { select: { name: true } },
+      truck: { select: { unitNumber: true } },
+    },
+  });
+  const TYPE_LABELS: Record<string, string> = {
+    CDL: "CDL",
+    MEDICAL_CARD: "Medical Card",
+    INSURANCE: "Insurance",
+    REGISTRATION: "Registration",
+    INSPECTION: "Inspection",
+    W9: "W-9",
+    AGREEMENT: "Signed Agreement",
+    DRUG_TEST: "Drug Test",
+    OTHER: "Document",
+  };
+  for (const d of documents) {
+    const holder =
+      d.holderType === "OPERATOR"
+        ? d.operator?.name
+        : d.holderType === "TRUCK"
+          ? d.truck?.unitNumber
+          : "Company";
+    pushAlert(
+      d.type,
+      holder || "—",
+      `${TYPE_LABELS[d.type] || "Document"}: ${d.title}`,
+      d.expiryDate
+    );
+  }
   alerts.sort((a, b) => a.daysLeft - b.daysLeft);
+
+  const docsTotal = await db.document.count();
 
   /* ---------- expenses ---------- */
   const yearStart = new Date(Date.UTC(now.getUTCFullYear(), 0, 1));
@@ -161,6 +197,7 @@ export async function GET() {
       totalUnits: trucks.length,
     },
     alerts,
+    documentsTotal: docsTotal,
     expensesMonth: Math.round(expensesMonth * 100) / 100,
     expensesYTD: Math.round(expensesYTD * 100) / 100,
     topCategories,

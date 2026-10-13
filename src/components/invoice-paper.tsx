@@ -74,17 +74,12 @@ export default function InvoicePaper({
           {/* Header */}
           <div className="flex justify-between gap-6">
             <div className="flex gap-4">
-              {/* logo tile */}
-              <div className="h-12 w-12 rounded-xl bg-neutral-900 flex items-center justify-center shrink-0">
-                <svg viewBox="0 0 34 34" className="h-7 w-7">
-                  <rect x="4" y="13" width="14" height="8" rx="1" fill="#d97706" />
-                  <rect x="19.5" y="15" width="7" height="6" rx="1" fill="#d97706" />
-                  <rect x="22.5" y="16.4" width="4" height="2.4" fill="#171717" />
-                  <circle cx="8.5" cy="23.5" r="2.1" fill="#d97706" />
-                  <circle cx="15.5" cy="23.5" r="2.1" fill="#d97706" />
-                  <circle cx="23" cy="23.5" r="2.1" fill="#d97706" />
-                </svg>
-              </div>
+              {/* real brand logo */}
+              <img
+                src="/shabab-logo.png"
+                alt="Shabab Express LLC"
+                className="h-[68px] w-auto shrink-0 object-contain"
+              />
               <div>
                 <div className="text-[24px] leading-6 font-bold tracking-tight">
                   {(settings?.name || "Shabab Express").toUpperCase()}
@@ -252,9 +247,14 @@ export default function InvoicePaper({
               <div className="mt-2.5 space-y-[7px]">
                 <SumRow label="Gross linehaul revenue" value={money(calc.grossTotal)} bold />
                 <SumRow
-                  label={`MC / dispatch fee (${invoice.mcFeePercent}%)`}
+                  label={`MC / dispatch fee (${invoice.mcFeePercent}% of gross)`}
                   value={`- ${money(calc.mcFee)}`}
                   accent
+                />
+                <SumRow
+                  label="Balance after MC fee"
+                  value={money(calc.grossTotal - calc.mcFee)}
+                  bold
                 />
                 {invoice.deductions.map((d, i) => (
                   <SumRow
@@ -286,33 +286,48 @@ export default function InvoicePaper({
 
           {/* Signatures */}
           <div className="mt-12 grid grid-cols-3 gap-10">
-            {["OWNER-OPERATOR SIGNATURE", "AUTHORIZED REPRESENTATIVE", "DATE"].map(
-              (label) => (
-                <div key={label}>
-                  <div className="border-t border-neutral-400" />
-                  <div className="text-[8.5px] tracking-wide text-neutral-400 mt-1.5">
-                    {label}
-                  </div>
+            {[
+              "OWNER-OPERATOR SIGNATURE",
+              "AUTHORIZED REPRESENTATIVE",
+              "DATE",
+            ].map((label, i) => (
+              <div key={label}>
+                {i === 1 && (
+                  <img
+                    src="/shabab-signature.png"
+                    alt="Authorized signature"
+                    className="h-9 w-auto object-contain -mb-0.5"
+                  />
+                )}
+                <div className="border-t border-neutral-400" />
+                <div className="text-[8.5px] tracking-wide text-neutral-400 mt-1.5">
+                  {label}
                 </div>
-              )
-            )}
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="border-t border-neutral-200 px-9 py-4 flex justify-between items-center text-[9px] text-neutral-400">
-          <div>
-            <span className="font-semibold text-neutral-500">
-              Thank you for hauling with {settings?.legalName || settings?.name || "Shabab Express"} — we
-              appreciate your business.
-            </span>
-            <br />
-            {settings?.addressLine || ""}, {settings?.city || ""},{" "}
-            {settings?.state || ""} {settings?.zip || ""} · {settings?.phone || ""} ·{" "}
-            {settings?.email || ""}
+        {/* Footer: identity + authority + address */}
+        <div className="border-t border-neutral-200 px-9 py-4 text-[9px] text-neutral-400">
+          <div className="font-semibold text-neutral-500">
+            Thank you for hauling with {settings?.legalName || settings?.name || "Shabab Express"} —
+            we appreciate your business.
           </div>
-          <div className="font-semibold">
-            {settings?.mcNumber || ""} · {settings?.dotNumber || ""}
+          <div className="mt-1 flex justify-between items-baseline gap-4">
+            <div>
+              <span className="font-bold text-amber-700">
+                {settings?.legalName || ""} · US DOT{" "}
+                {stripPrefix(settings?.dotNumber, /^DOT\s*/i)} · MC{" "}
+                {stripPrefix(settings?.mcNumber, /^MC\s*/i)}
+              </span>
+              <br />
+              <span>
+                {settings?.addressLine || ""}, {settings?.city || ""}, {settings?.state || ""}{" "}
+                {settings?.zip || ""} · {settings?.phone || ""} · {settings?.email || ""}
+              </span>
+            </div>
+            <span className="font-semibold shrink-0">Interstate Motor Carrier</span>
           </div>
         </div>
       </div>

@@ -52,6 +52,7 @@ model OwnerOperator {
   createdAt     DateTime  @default(now())
   invoices      Invoice[]
   trucks        Truck[]
+  documents     Document[]
 }
 
 model Truck {
@@ -73,6 +74,7 @@ model Truck {
   operatorId         String?
   operator           OwnerOperator? @relation(fields: [operatorId], references: [id], onDelete: SetNull)
   expenses           Expense[]
+  documents          Document[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 }
@@ -130,4 +132,25 @@ model Deduction {
   label     String
   amount    Float
   sortOrder Int     @default(0)
+}
+
+model Document {
+  id             String         @id @default(cuid())
+  title          String
+  type           String         @default("OTHER") // CDL | MEDICAL_CARD | INSURANCE | REGISTRATION | INSPECTION | W9 | AGREEMENT | DRUG_TEST | OTHER
+  holderType     String         @default("COMPANY") // COMPANY | OPERATOR | TRUCK
+  operatorId     String?
+  operator       OwnerOperator? @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+  truckId        String?
+  truck          Truck?         @relation(fields: [truckId], references: [id], onDelete: Cascade)
+  documentNumber String?
+  issuedDate     DateTime?
+  expiryDate     DateTime?
+  fileName       String?
+  mimeType       String?
+  fileSize       Int?
+  fileData       String? // base64-encoded file (<= ~4MB)
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }

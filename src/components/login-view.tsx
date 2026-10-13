@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Truck, Lock, User, Loader2 } from "lucide-react";
+import { Lock, User, Loader2 } from "lucide-react";
 
 export default function LoginView({ onSuccess }: { onSuccess: () => void }) {
   const [username, setUsername] = useState("");
@@ -41,9 +41,12 @@ export default function LoginView({ onSuccess }: { onSuccess: () => void }) {
         <div className="w-full max-w-sm">
           {/* Brand */}
           <div className="flex flex-col items-center mb-8">
-            <div className="h-14 w-14 rounded-2xl bg-neutral-900 flex items-center justify-center mb-4">
-              <Truck className="h-7 w-7 text-amber-400" />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/shabab-logo.png"
+              alt="Shabab Express LLC"
+              className="h-20 w-auto object-contain mb-3"
+            />
             <h1 className="text-2xl font-semibold tracking-tight text-neutral-900">
               SHABAB EXPRESS
             </h1>

@@ -111,6 +111,26 @@ export interface CompanySettings {
   paymentTerms: string;
 }
 
+export interface DocumentItem {
+  id: string;
+  title: string;
+  type: string;
+  holderType: "COMPANY" | "OPERATOR" | "TRUCK" | string;
+  operatorId?: string | null;
+  operator?: { id: string; name: string } | null;
+  truckId?: string | null;
+  truck?: { id: string; unitNumber: string; type: string } | null;
+  documentNumber?: string | null;
+  issuedDate?: string | null;
+  expiryDate?: string | null;
+  fileName?: string | null;
+  mimeType?: string | null;
+  fileSize?: number | null;
+  hasFile?: boolean;
+  notes?: string | null;
+  createdAt: string;
+}
+
 export interface Stats {
   grossYTD: number;
   netYTD: number;
@@ -162,26 +182,28 @@ async function handle(res: Response) {
 }
 
 export const api = {
-  get: (url: string) => fetch(url, { cache: "no-store" }).then(handle),
-  post: (url: string, body: unknown) =>
+  get: <T = any>(url: string): Promise<T> =>
+    fetch(url, { cache: "no-store" }).then(handle) as Promise<T>,
+  post: <T = any>(url: string, body: unknown): Promise<T> =>
     fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    }).then(handle),
-  patch: (url: string, body: unknown) =>
+    }).then(handle) as Promise<T>,
+  patch: <T = any>(url: string, body: unknown): Promise<T> =>
     fetch(url, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    }).then(handle),
-  put: (url: string, body: unknown) =>
+    }).then(handle) as Promise<T>,
+  put: <T = any>(url: string, body: unknown): Promise<T> =>
     fetch(url, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
-    }).then(handle),
-  del: (url: string) => fetch(url, { method: "DELETE" }).then(handle),
+    }).then(handle) as Promise<T>,
+  del: <T = any>(url: string): Promise<T> =>
+    fetch(url, { method: "DELETE" }).then(handle) as Promise<T>,
 };
 
 export async function downloadInvoicePdf(id: string, number: string) {

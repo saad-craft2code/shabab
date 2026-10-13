@@ -3,6 +3,7 @@ export type View =
   | { name: "operators" }
   | { name: "invoices" }
   | { name: "fleet" }
+  | { name: "documents" }
   | { name: "expenses" }
   | { name: "invoice-new"; operatorId?: string }
   | { name: "invoice-edit"; id: string }

@@ -566,9 +566,13 @@ export default function InvoiceFormView({
               <Line label={`Total Miles`} value={totalMiles(numericLoads).toLocaleString("en-US")} plain />
               <div className="border-t border-dashed border-neutral-200 pt-2.5">
                 <Line
-                  label={`MC / Dispatch Fee (${mcFeePercent || 0}%)`}
+                  label={`MC / Dispatch Fee (${mcFeePercent || 0}% of gross)`}
                   value={`- ${formatUSD(calc.mcFee)}`}
                   muted
+                />
+                <Line
+                  label="Balance after MC fee"
+                  value={formatUSD(calc.grossTotal - calc.mcFee)}
                 />
                 {deductions
                   .filter((d) => d.label.trim() && Number(d.amount))
@@ -585,8 +589,8 @@ export default function InvoiceFormView({
               </span>
             </div>
             <p className="text-[11px] text-neutral-400 leading-relaxed">
-              Net = Gross − {mcFeePercent || 0}% MC fee − other deductions. The operator receives
-              this amount after brokers pay {settings?.name || "Shabab Express"}.
+              The {mcFeePercent || 0}% MC fee comes off the gross first, then other deductions
+              (fuel, insurance, advances…) are subtracted from the remaining balance.
             </p>
           </CardContent>
         </Card>

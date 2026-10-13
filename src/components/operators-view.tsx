@@ -41,8 +41,13 @@ import {
   UserRoundX,
   Loader2,
   IdCard,
+  Paperclip,
+  Download,
+  FolderOpen,
 } from "lucide-react";
 import type { Navigate } from "@/lib/view";
+import type { DocumentItem } from "@/lib/api";
+import { DOC_TYPES, docTypeLabel } from "@/components/documents-view";
 
 interface FormState {
   name: string;
@@ -80,6 +85,24 @@ const EMPTY: FormState = {
   notes: "",
 };
 
+interface DocRow {
+  type: string;
+  documentNumber: string;
+  expiryDate: string;
+  fileName: string;
+  mimeType: string;
+  fileData: string;
+}
+
+const EMPTY_DOC_ROW: DocRow = {
+  type: "CDL",
+  documentNumber: "",
+  expiryDate: "",
+  fileName: "",
+  mimeType: "",
+  fileData: "",
+};
+
 export default function OperatorsView({ navigate }: { navigate: Navigate }) {
   const [operators, setOperators] = useState<Operator[] | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -87,6 +110,8 @@ export default function OperatorsView({ navigate }: { navigate: Navigate }) {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Operator | null>(null);
+  const [docRows, setDocRows] = useState<DocRow[]>([]);
+  const [existingDocs, setExistingDocs] = useState<DocumentItem[] | null>(null);
   const { toast } = useToast();
 
   function load() {
@@ -101,6 +126,8 @@ export default function OperatorsView({ navigate }: { navigate: Navigate }) {
   function openAdd() {
     setEditing(null);
     setForm(EMPTY);
+    setDocRows([]);
+    setExistingDocs(null);
     setDialogOpen(true);
   }
 
@@ -123,7 +150,34 @@ export default function OperatorsView({ navigate }: { navigate: Navigate }) {
       status: op.status,
       notes: op.notes || "",
     });
+    setDocRows([]);
+    setExistingDocs(null);
+    api
+      .get<{ documents: DocumentItem[] }>(`/api/documents?operatorId=${op.id}`)
+      .then((d) => setExistingDocs(d.documents))
+      .catch(() => setExistingDocs([]));
     setDialogOpen(true);
+  }
+
+  function updateDocRow(i: number, patch: Partial<DocRow>) {
+    setDocRows((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)));
+  }
+
+  function docFile(e: React.ChangeEvent<HTMLInputElement>, i: number) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 4 * 1024 * 1024) {
+      toast({ title: "File too large — max 4 MB", variant: "destructive" });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () =>
+      updateDocRow(i, {
+        fileName: f.name,
+        mimeType: f.type || "application/octet-stream",
+        fileData: String(reader.result || ""),
+      });
+    reader.readAsDataURL(f);
   }
 
   async function save() {
@@ -134,12 +188,34 @@ export default function OperatorsView({ navigate }: { navigate: Navigate }) {
     setSaving(true);
     try {
       const payload = { ...form, mcFeePercent: Number(form.mcFeePercent) || 10 };
+      let operatorId = editing?.id;
       if (editing) {
         await api.patch(`/api/operators/${editing.id}`, payload);
         toast({ title: "Operator updated", description: `${form.name} has been saved.` });
       } else {
-        await api.post("/api/operators", payload);
+        const res = await api.post<{ operator: Operator }>("/api/operators", payload);
+        operatorId = res.operator.id;
         toast({ title: "Operator added", description: `${form.name} is now on your roster.` });
+      }
+      // create any attached document rows
+      let created = 0;
+      for (const row of docRows) {
+        if (!operatorId) break;
+        await api.post("/api/documents", {
+          title: `${docTypeLabel(row.type)} — ${form.name.trim()}`,
+          type: row.type,
+          holderType: "OPERATOR",
+          operatorId,
+          documentNumber: row.documentNumber || null,
+          expiryDate: row.expiryDate || null,
+          fileName: row.fileName || null,
+          mimeType: row.mimeType || null,
+          fileData: row.fileData || null,
+        });
+        created += 1;
+      }
+      if (created > 0) {
+        toast({ title: `${created} document${created === 1 ? "" : "s"} attached to ${form.name}` });
       }
       setDialogOpen(false);
       load();
@@ -415,6 +491,122 @@ export default function OperatorsView({ navigate }: { navigate: Navigate }) {
               <Field label="Notes">
                 <Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Endorsements, preferred lanes, onboarding notes…" />
               </Field>
+            </div>
+
+            {/* ===== Documents section ===== */}
+            <div className="sm:col-span-2 border-t border-neutral-100 pt-4">
+              <div className="flex items-center justify-between mb-1">
+                <Label className="text-xs text-neutral-600 flex items-center gap-1.5">
+                  <FolderOpen className="h-3.5 w-3.5 text-amber-600" />
+                  Operator documents (CDL, medical card, W-9, agreement…)
+                </Label>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={() => setDocRows((r) => [...r, { ...EMPTY_DOC_ROW }])}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add row
+                </Button>
+              </div>
+              <p className="text-[10.5px] text-neutral-400 mb-3">
+                Attached files are saved with the operator and expiry dates trigger alerts.
+              </p>
+
+              {/* existing docs when editing */}
+              {editing && existingDocs !== null && existingDocs.length > 0 && (
+                <div className="space-y-1.5 mb-3">
+                  {existingDocs.map((d) => (
+                    <div
+                      key={d.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-neutral-100 bg-neutral-50/60 px-3 py-2 text-xs"
+                    >
+                      <div className="min-w-0">
+                        <span className="font-medium text-neutral-800">{d.title}</span>
+                        {d.expiryDate && (
+                          <span className="text-neutral-400 ml-2">exp {formatDate(d.expiryDate)}</span>
+                        )}
+                      </div>
+                      {d.hasFile && (
+                        <button
+                          type="button"
+                          onClick={() => window.open(`/api/documents/${d.id}/file`, "_blank")}
+                          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium shrink-0"
+                        >
+                          <Download className="h-3 w-3" /> file
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-neutral-400">
+                    Manage these in the Documents section of the portal.
+                  </p>
+                </div>
+              )}
+
+              {docRows.map((row, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl border border-neutral-200 p-3 mb-2.5 bg-neutral-50/40"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-semibold text-neutral-500 uppercase tracking-wide">
+                      Document {i + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setDocRows((r) => r.filter((_, idx) => idx !== i))}
+                      className="text-neutral-400 hover:text-red-500"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <Field label="Type">
+                      <select
+                        value={row.type}
+                        onChange={(e) => updateDocRow(i, { type: e.target.value })}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        {DOC_TYPES.map((t) => (
+                          <option key={t.value} value={t.value}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Number">
+                      <Input
+                        value={row.documentNumber}
+                        onChange={(e) => updateDocRow(i, { documentNumber: e.target.value })}
+                        placeholder="ID / policy #"
+                      />
+                    </Field>
+                    <Field label="Expiry date">
+                      <Input
+                        type="date"
+                        value={row.expiryDate}
+                        onChange={(e) => updateDocRow(i, { expiryDate: e.target.value })}
+                      />
+                    </Field>
+                  </div>
+                  <div className="mt-2.5">
+                    <Label className="text-xs text-neutral-600">File (optional, max 4 MB)</Label>
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png,.webp"
+                      onChange={(e) => docFile(e, i)}
+                      className="mt-1 text-xs file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-neutral-900 file:text-white file:text-xs file:font-medium cursor-pointer"
+                    />
+                    {row.fileName && (
+                      <p className="text-[11px] text-neutral-500 mt-1 flex items-center gap-1">
+                        <Paperclip className="h-3 w-3" /> {row.fileName}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-2">

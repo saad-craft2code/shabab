@@ -10,6 +10,8 @@ import {
 } from "pdf-lib";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { SHABAB_LOGO } from "@/lib/shabab.logo";
+import { SHABAB_SIGNATURE } from "@/lib/shabab.signature";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -82,6 +84,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const regular = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const oblique = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
+
+  // brand images (embedded at build-time via base64 — works on serverless)
+  let logoImg: Awaited<ReturnType<typeof pdfDoc.embedPng>> | null = null;
+  let sigImg: Awaited<ReturnType<typeof pdfDoc.embedPng>> | null = null;
+  try {
+    logoImg = await pdfDoc.embedPng(SHABAB_LOGO);
+  } catch {}
+  try {
+    sigImg = await pdfDoc.embedPng(SHABAB_SIGNATURE);
+  } catch {}
 
   const W = PageSizes.Letter[0];
   const H = PageSizes.Letter[1];
@@ -168,8 +180,16 @@ export async function GET(_req: NextRequest, { params }: Params) {
     });
   };
 
-  /** Minimal geometric truck glyph inside a dark rounded tile. */
+  /** Real Shabab Express shield logo; falls back to glyph tile if unavailable. */
   const drawLogo = (page: PDFPage, x: number, yTop: number, s = 34) => {
+    if (logoImg) {
+      const iw = logoImg.width;
+      const ih = logoImg.height;
+      const scale = s / ih;
+      const w = iw * scale;
+      page.drawImage(logoImg, { x: x + (s - w) / 2, y: yTop - s, width: w, height: s });
+      return;
+    }
     roundRect(page, x, yTop, s, s, 7, INK);
     const cy = yTop - s / 2;
     // trailer body
@@ -206,18 +226,19 @@ export async function GET(_req: NextRequest, { params }: Params) {
   // top gold accent bar
   page.drawRectangle({ x: 0, y: H - 6, width: W, height: 6, color: GOLD });
 
-  // header — left: logo + identity
+  // header — left: logo + identity (wider logo block: shield is portrait)
   const headerTop = H - 34;
-  drawLogo(page, M, headerTop, 34);
-  t(page, (settings?.name || "Shabab Express").toUpperCase(), M + 46, H - 48, {
+  drawLogo(page, M, headerTop, 58);
+  const logoTextX = M + 74;
+  t(page, (settings?.name || "Shabab Express").toUpperCase(), logoTextX, H - 48, {
     size: 19,
     font: bold,
-    maxW: 300,
+    maxW: 290,
   });
-  t(page, settings?.legalName || "", M + 46.5, H - 60, { size: 7.5, color: MUTED });
-  t(page, companyAddr, M + 46.5, H - 71, { size: 7.5, color: FAINT, maxW: 300 });
-  t(page, companyContact, M + 46.5, H - 82, { size: 7.5, color: FAINT, maxW: 300 });
-  t(page, authority, M + 46.5, H - 97, { size: 8, font: bold, color: GOLD_DARK });
+  t(page, settings?.legalName || "", logoTextX + 0.5, H - 60, { size: 7.5, color: MUTED });
+  t(page, companyAddr, logoTextX + 0.5, H - 71, { size: 7.5, color: FAINT, maxW: 290 });
+  t(page, companyContact, logoTextX + 0.5, H - 82, { size: 7.5, color: FAINT, maxW: 290 });
+  t(page, authority, logoTextX + 0.5, H - 97, { size: 8, font: bold, color: GOLD_DARK });
 
   // header — right: document meta
   const RX = W - M;
@@ -370,7 +391,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const sumW = 258;
   const sumX = W - M - sumW;
-  const sumRows = 2 + invoice.deductions.length; // gross + fee + deductions
+  // gross + MC fee + subtotal-after-MC + each deduction
+  const sumRows = 3 + invoice.deductions.length;
   // vertical rhythm: title 18 + rows 38.. + divider + total + netbox + pad
   const sumH = 126 + 17 * (sumRows - 1);
   const needSpace = sumH + 90;
@@ -394,7 +416,8 @@ export async function GET(_req: NextRequest, { params }: Params) {
   t(page, "Gross linehaul revenue", sumX + 14, sy, { size: 8.8 });
   t(page, money(grossTotal), sumX + sumW - 14, sy, { size: 9.2, font: bold, align: "right" });
   sy -= 17;
-  t(page, `MC / dispatch fee (${invoice.mcFeePercent}%)`, sumX + 14, sy, {
+  // 10% MC fee comes off the gross FIRST, before any other deductions
+  t(page, `MC / dispatch fee (${invoice.mcFeePercent}% of gross)`, sumX + 14, sy, {
     size: 8.8,
     color: GOLD_DARK,
   });
@@ -402,6 +425,13 @@ export async function GET(_req: NextRequest, { params }: Params) {
     size: 9.2,
     font: bold,
     color: GOLD_DARK,
+    align: "right",
+  });
+  sy -= 17;
+  t(page, "Balance after MC fee", sumX + 14, sy, { size: 8.8, font: bold });
+  t(page, money(grossTotal - mcFee), sumX + sumW - 14, sy, {
+    size: 9.2,
+    font: bold,
     align: "right",
   });
   sy -= 17;
@@ -481,6 +511,18 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const sigW = 148;
   const gaps = (W - M * 2 - sigW * 3) / 2;
   const sigXs = [M, M + sigW + gaps, M + (sigW + gaps) * 2];
+  // company signature image above the authorized-representative line
+  if (sigImg) {
+    const sigScale = 34 / sigImg.height;
+    const sigDrawW = Math.min(sigImg.width * sigScale, 64);
+    const sigDrawH = sigDrawW / (sigImg.width / sigImg.height);
+    page.drawImage(sigImg, {
+      x: sigXs[1] + sigW / 2 - sigDrawW / 2,
+      y: sigY + 3,
+      width: sigDrawW,
+      height: sigDrawH,
+    });
+  }
   sigXs.forEach((sx, i) => {
     page.drawLine({ start: { x: sx, y: sigY }, end: { x: sx + sigW, y: sigY }, thickness: 0.7, color: FAINT });
     t(page, ["OWNER-OPERATOR SIGNATURE", "AUTHORIZED REPRESENTATIVE", "DATE"][i], sx, sigY - 11, {
@@ -489,21 +531,35 @@ export async function GET(_req: NextRequest, { params }: Params) {
     });
   });
 
-  /* ---------- footer ---------- */
+  /* ---------- footer: identity + authority + address ---------- */
   const pages = pdfDoc.getPages();
   pages.forEach((p, i) => {
-    p.drawLine({ start: { x: M, y: 56 }, end: { x: W - M, y: 56 }, thickness: 0.6, color: LINE });
-    t(p, `Thank you for hauling with ${settings?.legalName || companyName} — we appreciate your business.`, M, 42, {
+    p.drawLine({ start: { x: M, y: 58 }, end: { x: W - M, y: 58 }, thickness: 0.6, color: LINE });
+    t(p, `Thank you for hauling with ${settings?.legalName || companyName} — we appreciate your business.`, M, 45, {
       size: 7.5,
       color: MUTED,
     });
-    t(p, `${companyAddr}   •   ${settings?.phone || ""}   •   ${settings?.email || ""}`, M, 31, {
-      size: 6.8,
-      color: FAINT,
-      maxW: W - M * 2 - 80,
+    // authority line: legal name • MC • DOT
+    t(
+      p,
+      `${settings?.legalName || companyName}   •   ${authority}`,
+      M,
+      34,
+      {
+        size: 7,
+        font: bold,
+        color: GOLD_DARK,
+        maxW: W - M * 2 - 70,
+      }
+    );
+    // address line with phone + email
+    t(p, `${companyAddr}   •   ${settings?.phone || ""}   •   ${settings?.email || ""}`, M, 24, {
+      size: 6.6,
+      color: MUTED,
+      maxW: W - M * 2 - 70,
     });
-    t(p, `Page ${i + 1} of ${pages.length}`, W - M, 31, { size: 6.8, color: FAINT, align: "right" });
-    t(p, `${settings?.mcNumber || ""} · ${settings?.dotNumber || ""}`, W - M, 42, {
+    t(p, `Page ${i + 1} of ${pages.length}`, W - M, 24, { size: 6.8, color: FAINT, align: "right" });
+    t(p, ` Interstate Motor Carrier`, W - M, 34, {
       size: 6.8,
       font: bold,
       color: FAINT,

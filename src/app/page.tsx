@@ -10,6 +10,7 @@ import InvoiceFormView from "@/components/invoice-form-view";
 import InvoiceDetailView from "@/components/invoice-detail-view";
 import FleetView from "@/components/fleet-view";
 import ExpensesView from "@/components/expenses-view";
+import DocumentsView from "@/components/documents-view";
 import SettingsView from "@/components/settings-view";
 import { Loader2 } from "lucide-react";
 import type { View } from "@/lib/view";
@@ -48,6 +49,7 @@ export default function Home() {
       {view.name === "operators" && <OperatorsView navigate={setView} />}
       {view.name === "invoices" && <InvoicesView navigate={setView} />}
       {view.name === "fleet" && <FleetView key="fleet" />}
+      {view.name === "documents" && <DocumentsView key="documents" />}
       {view.name === "expenses" && <ExpensesView key="expenses" />}
       {view.name === "invoice-new" && (
         <InvoiceFormView
