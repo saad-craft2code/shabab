@@ -44,7 +44,7 @@ const DEDUCTION_PRESETS = [
   "Escrow Deposit",
   "Insurance",
   "Tolls",
-  "Lumper Fee",
+  "Administration Fee",
   "Repair / Maintenance",
   "Truck Rental",
 ];

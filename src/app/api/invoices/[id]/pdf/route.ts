@@ -526,7 +526,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const pages = pdfDoc.getPages();
   pages.forEach((p, i) => {
     p.drawLine({ start: { x: M, y: 58 }, end: { x: W - M, y: 58 }, thickness: 0.6, color: LINE });
-    t(p, "Thank you", W / 2, 43, { size: 10, font: oblique, color: MUTED, align: "center" });
+    t(p, "Thank you for working with us", W / 2, 43, { size: 10, font: oblique, color: MUTED, align: "center" });
     t(p, `Page ${i + 1} of ${pages.length}`, W - M, 43, { size: 6.8, color: FAINT, align: "right" });
   });
 

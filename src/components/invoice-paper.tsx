@@ -307,7 +307,9 @@ export default function InvoicePaper({
 
         {/* Footer: just a thank-you, nothing else */}
         <div className="border-t border-neutral-200 px-10 py-5 text-center">
-          <span className="text-[11px] italic text-neutral-400">Thank you</span>
+          <span className="text-[11px] italic text-neutral-400">
+            Thank you for working with us
+          </span>
         </div>
       </div>
     </div>
